@@ -25,7 +25,13 @@
     <option name="showStatusBarWidget" value="true" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="bbf2e9dc-ea1c-4d69-b45a-f73b218e10c1" name="Default Changelist" comment="" />
+    <list default="true" id="bbf2e9dc-ea1c-4d69-b45a-f73b218e10c1" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/.idea.Unity Team Helper/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.Unity Team Helper/.idea/contentModel.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Unity Team Helper/.idea/contentModel.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.Unity Team Helper/.idea/indexLayout.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Unity Team Helper/.idea/indexLayout.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.Unity Team Helper/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Unity Team Helper/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Editor/TeamHelper/TeamHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Editor/TeamHelper/TeamHelper.cs" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -37,10 +43,15 @@
     <fileColor scope="Non-Project Files (Material Lighter)" color="eae8e8" />
     <fileColor scope="Non-Project Files (Material Palenight)" color="2f2e43" />
   </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$PROJECT_DIR$/Library/PackageCache/com.unity.editorcoroutines@0.1.0-preview.2/Editor/EditorCoroutineUtility.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Editor/TeamHelper/JSONParser.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Editor/TeamHelper/TeamHelper.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Library/PackageCache/com.unity.editorcoroutines@0.1.0-preview.2/Editor/EditorWaitForSeconds.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Editor/TeamHelper/NativeWebSocket/WebSocket/WebSocket.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Library/PackageCache/com.unity.editorcoroutines@0.1.0-preview.2/Editor/EditorCoroutine.cs" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="IdeDocumentHistory">
@@ -51,6 +62,7 @@
     </option>
   </component>
   <component name="ProjectId" id="1a1ccF3huSUIhli8oXvs6nfcANc" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showExcludedFiles" value="true" />
@@ -60,6 +72,8 @@
     <property name="Discover.Launch.Via.Unity" value="true" />
     <property name="Rider.SolutionExplorerActivator" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
+    <property name="TWShift.3" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="android.sdk.path" value="$USER_HOME$/Library/Android/sdk" />
     <property name="node.js.detected.package.eslint" value="true" />
@@ -96,7 +110,8 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1585906620476</updated>
-      <workItem from="1585906625171" duration="8685000" />
+      <workItem from="1585906625171" duration="34532000" />
+      <workItem from="1586025862089" duration="243000" />
     </task>
     <servers />
   </component>
@@ -105,10 +120,96 @@
   </component>
   <component name="UnityProjectConfiguration" hasMinimizedUI="true" />
   <component name="UnityUnitTestConfiguration" currentTestLauncher="EditMode" />
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="COLUMN_ORDER" />
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
   <component name="WindowStateProjectService">
-    <state x="4510" y="-47" width="670" height="676" key="search.everywhere.popup" timestamp="1585909920705">
+    <state width="1243" height="519" key="GridCell.Tab.0.bottom" timestamp="1586024145400">
       <screen x="2048" y="-378" width="3440" height="1440" />
     </state>
+    <state width="1243" height="519" key="GridCell.Tab.0.bottom/2048.-378.3440.1440/0.0.2048.1280@2048.-378.3440.1440" timestamp="1586024145400" />
+    <state width="1243" height="519" key="GridCell.Tab.0.center" timestamp="1586024145398">
+      <screen x="2048" y="-378" width="3440" height="1440" />
+    </state>
+    <state width="1243" height="519" key="GridCell.Tab.0.center/2048.-378.3440.1440/0.0.2048.1280@2048.-378.3440.1440" timestamp="1586024145398" />
+    <state width="1243" height="519" key="GridCell.Tab.0.left" timestamp="1586024145397">
+      <screen x="2048" y="-378" width="3440" height="1440" />
+    </state>
+    <state width="1243" height="519" key="GridCell.Tab.0.left/2048.-378.3440.1440/0.0.2048.1280@2048.-378.3440.1440" timestamp="1586024145397" />
+    <state width="1243" height="519" key="GridCell.Tab.0.right" timestamp="1586024145399">
+      <screen x="2048" y="-378" width="3440" height="1440" />
+    </state>
+    <state width="1243" height="519" key="GridCell.Tab.0.right/2048.-378.3440.1440/0.0.2048.1280@2048.-378.3440.1440" timestamp="1586024145399" />
+    <state width="1243" height="519" key="GridCell.Tab.1.bottom" timestamp="1586024145404">
+      <screen x="2048" y="-378" width="3440" height="1440" />
+    </state>
+    <state width="1243" height="519" key="GridCell.Tab.1.bottom/2048.-378.3440.1440/0.0.2048.1280@2048.-378.3440.1440" timestamp="1586024145404" />
+    <state width="1243" height="519" key="GridCell.Tab.1.center" timestamp="1586024145402">
+      <screen x="2048" y="-378" width="3440" height="1440" />
+    </state>
+    <state width="1243" height="519" key="GridCell.Tab.1.center/2048.-378.3440.1440/0.0.2048.1280@2048.-378.3440.1440" timestamp="1586024145402" />
+    <state width="1243" height="519" key="GridCell.Tab.1.left" timestamp="1586024145401">
+      <screen x="2048" y="-378" width="3440" height="1440" />
+    </state>
+    <state width="1243" height="519" key="GridCell.Tab.1.left/2048.-378.3440.1440/0.0.2048.1280@2048.-378.3440.1440" timestamp="1586024145401" />
+    <state width="1243" height="519" key="GridCell.Tab.1.right" timestamp="1586024145403">
+      <screen x="2048" y="-378" width="3440" height="1440" />
+    </state>
+    <state width="1243" height="519" key="GridCell.Tab.1.right/2048.-378.3440.1440/0.0.2048.1280@2048.-378.3440.1440" timestamp="1586024145403" />
+    <state width="1243" height="519" key="GridCell.Tab.2.bottom" timestamp="1586024145408">
+      <screen x="2048" y="-378" width="3440" height="1440" />
+    </state>
+    <state width="1243" height="519" key="GridCell.Tab.2.bottom/2048.-378.3440.1440/0.0.2048.1280@2048.-378.3440.1440" timestamp="1586024145408" />
+    <state width="1243" height="519" key="GridCell.Tab.2.center" timestamp="1586024145406">
+      <screen x="2048" y="-378" width="3440" height="1440" />
+    </state>
+    <state width="1243" height="519" key="GridCell.Tab.2.center/2048.-378.3440.1440/0.0.2048.1280@2048.-378.3440.1440" timestamp="1586024145406" />
+    <state width="1243" height="519" key="GridCell.Tab.2.left" timestamp="1586024145405">
+      <screen x="2048" y="-378" width="3440" height="1440" />
+    </state>
+    <state width="1243" height="519" key="GridCell.Tab.2.left/2048.-378.3440.1440/0.0.2048.1280@2048.-378.3440.1440" timestamp="1586024145405" />
+    <state width="1243" height="519" key="GridCell.Tab.2.right" timestamp="1586024145407">
+      <screen x="2048" y="-378" width="3440" height="1440" />
+    </state>
+    <state width="1243" height="519" key="GridCell.Tab.2.right/2048.-378.3440.1440/0.0.2048.1280@2048.-378.3440.1440" timestamp="1586024145407" />
+    <state width="1243" height="519" key="GridCell.Tab.3.bottom" timestamp="1586024145411">
+      <screen x="2048" y="-378" width="3440" height="1440" />
+    </state>
+    <state width="1243" height="519" key="GridCell.Tab.3.bottom/2048.-378.3440.1440/0.0.2048.1280@2048.-378.3440.1440" timestamp="1586024145411" />
+    <state width="1243" height="519" key="GridCell.Tab.3.center" timestamp="1586024145410">
+      <screen x="2048" y="-378" width="3440" height="1440" />
+    </state>
+    <state width="1243" height="519" key="GridCell.Tab.3.center/2048.-378.3440.1440/0.0.2048.1280@2048.-378.3440.1440" timestamp="1586024145410" />
+    <state width="1243" height="519" key="GridCell.Tab.3.left" timestamp="1586024145409">
+      <screen x="2048" y="-378" width="3440" height="1440" />
+    </state>
+    <state width="1243" height="519" key="GridCell.Tab.3.left/2048.-378.3440.1440/0.0.2048.1280@2048.-378.3440.1440" timestamp="1586024145409" />
+    <state width="1243" height="519" key="GridCell.Tab.3.right" timestamp="1586024145411">
+      <screen x="2048" y="-378" width="3440" height="1440" />
+    </state>
+    <state width="1243" height="519" key="GridCell.Tab.3.right/2048.-378.3440.1440/0.0.2048.1280@2048.-378.3440.1440" timestamp="1586024145411" />
+    <state width="610" height="445" key="SwitcherDM" timestamp="1586021061794">
+      <screen x="2048" y="-378" width="3440" height="1440" />
+    </state>
+    <state width="610" height="445" key="SwitcherDM/2048.-378.3440.1440/0.0.2048.1280@2048.-378.3440.1440" timestamp="1586021061794" />
+    <state x="4303" y="-278" width="1085" height="1240" key="com.intellij.history.integration.ui.views.FileHistoryDialog" timestamp="1586024101103">
+      <screen x="2048" y="-378" width="3440" height="1440" />
+    </state>
+    <state x="4303" y="-278" width="1085" height="1240" key="com.intellij.history.integration.ui.views.FileHistoryDialog/2048.-378.3440.1440/0.0.2048.1280@2048.-378.3440.1440" timestamp="1586024101103" />
+    <state x="4510" y="-29" width="670" height="666" key="search.everywhere.popup" timestamp="1585936375099">
+      <screen x="2048" y="-355" width="3440" height="1417" />
+    </state>
+    <state x="4510" y="-29" width="670" height="666" key="search.everywhere.popup/2048.-355.3440.1417/0.23.2048.1257@2048.-355.3440.1417" timestamp="1585936375099" />
     <state x="4510" y="-47" width="670" height="676" key="search.everywhere.popup/2048.-378.3440.1440/0.0.2048.1280@2048.-378.3440.1440" timestamp="1585909920705" />
   </component>
 </project>

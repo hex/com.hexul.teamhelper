@@ -1,6 +1,5 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
-using Unity.EditorCoroutines.Editor;
 using UnityEditor;
 using NativeWebSocket;
 using TinyJson;
@@ -13,6 +12,7 @@ namespace erpk
     {
         public string User;
         public string Id;
+        public string Channel;
     }
 
     public class TeamHelper : EditorWindow
@@ -21,8 +21,13 @@ namespace erpk
 
         private static Texture2D _backgroundTexture;
         private static GUIStyle _textureStyle;
+        private Vector2 _scrollPos;
         private StringReactiveProperty _serverJson = new StringReactiveProperty();
         private List<UnityUser> _activeClients = new List<UnityUser>();
+        private BoolReactiveProperty _isConnected = new BoolReactiveProperty();
+        private IDisposable _reconnectObserver;
+        private IDisposable _isConnectedObserver;
+        private IDisposable _serverJsonObserver;
 
         [MenuItem("Game/Team Helper")]
         static void Init()
@@ -42,35 +47,54 @@ namespace erpk
         {
             ConnectSocket();
 
-            _serverJson.Subscribe(value =>
+            _isConnectedObserver = _isConnected.Subscribe(status =>
             {
-                Debug.Log("SUBSCRIBE");
-                _activeClients = value.FromJson<List<UnityUser>>();
-                Repaint();
+                if (status) return;
+
+                _reconnectObserver = Observable.Interval(TimeSpan.FromSeconds(5))
+                    .TakeUntil(_isConnected.Where(connected => connected))
+                    .Subscribe(observer =>
+                    {
+                        _activeClients = new List<UnityUser>();
+                        ConnectSocket();
+                        Debug.Log("Trying to reconnect " + _socket.State);
+                    });
             });
 
-            // this.StartCoroutine(SendHeartbeat());
-        }
-
-        private IEnumerator SendHeartbeat()
-        {
-            yield return new EditorWaitForSeconds(5f);
-
-            SendWebSocketMessage("heartbeat", SystemInfo.deviceUniqueIdentifier);
-            this.StartCoroutine(SendHeartbeat());
+            _serverJsonObserver = _serverJson.Subscribe(value =>
+            { 
+                _activeClients = value?.FromJson<List<UnityUser>>();
+                Repaint();
+            });
         }
 
         private async void ConnectSocket()
         {
             Debug.Log("[UTH] Connecting to server");
 
-            _socket = new WebSocket("ws://localhost:8080?clientName=" + SystemInfo.deviceName + "&clientId=" +
-                                    SystemInfo.deviceUniqueIdentifier);
+            _socket = new WebSocket(
+                $"ws://localhost:8080?clientName={SystemInfo.deviceName}&clientId={SystemInfo.deviceUniqueIdentifier}&channel={Application.identifier}");
 
-            _socket.OnError += (e) => { Debug.LogError("[UTH] Error! " + e); };
-            _socket.OnClose += (e) => { Debug.LogWarning("[UTH] Connection closed!"); };
+            _socket.OnError += (e) =>
+            {
+                Debug.LogError("[UTH] Error! " + e);
+                Repaint();
+                _isConnected.Value = false; 
+            };
+            _socket.OnClose += (e) =>
+            {
+                Debug.LogWarning("[UTH] Connection closed!");
+                _socket.Close();
+                Repaint();
+                _isConnected.Value = false;
+            };
             _socket.OnMessage += ParseMessages;
-            _socket.OnOpen += () => { SendWebSocketMessage("user", "sadsadasdas" + SystemInfo.deviceName); };
+            _socket.OnOpen += () =>
+            {
+                SendWebSocketMessage("user", "sadsadasdas" + SystemInfo.deviceName);
+                Repaint();
+                _isConnected.Value = true;
+            };
 
             await _socket.Connect();
         }
@@ -81,22 +105,7 @@ namespace erpk
 
             Debug.Log("[UTH] Server message: " + msg);
 
-            _serverJson.Value = msg;
-
-            var clients = msg.FromJson<List<UnityUser>>();
-
-            foreach (var client in clients)
-            {
-                Debug.LogError(client.User);
-                Debug.LogError(client.Id);
-            }
-
-            // switch (msg)
-            // {
-            //     case "clientCount":
-            //         _activeClients.Value = int.Parse(msg);
-            //         break;
-            // }
+            _serverJson.SetValueAndForceNotify(msg);
         }
 
         private async void SendWebSocketMessage(string route, string msg)
@@ -109,43 +118,92 @@ namespace erpk
 
         private async void OnDestroy()
         {
-            await _socket.Close();
+            if (_socket != null) await _socket.Close();
+
+            _isConnectedObserver.Dispose();
+            _serverJson.Dispose();
+            _reconnectObserver.Dispose();
+        }
+
+        private void CheckServerStatus()
+        {
+            switch (_socket?.State)
+            {
+                case WebSocketState.Open:
+                    DrawBox(new Rect(Screen.width - 17, 7, 9, 9), Color.green);
+                    break;
+                case WebSocketState.Closed:
+                case WebSocketState.Closing:
+                    DrawBox(new Rect(Screen.width - 17, 7, 9, 9),
+                        DateTime.Now.Second % 2 == 0 ? Color.yellow : Color.red);
+                    break;
+                default:
+                    DrawBox(new Rect(Screen.width - 17, 7, 9, 9), Color.yellow);
+                    break;
+            }
         }
 
         private void OnGUI()
         {
-            EditorGUILayout.HelpBox("Team Helper", MessageType.None);
-            DrawBox(new Rect(Screen.width - 17, 7, 9, 9), Color.green);
-
-            EditorGUILayout.LabelField("Active team members");
-            EditorGUILayout.LabelField(_activeClients.Count.ToString());
-
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("User", EditorStyles.foldoutHeader);
-            EditorGUILayout.LabelField("Status", EditorStyles.foldoutHeader);
-            EditorGUILayout.LabelField("Actions", EditorStyles.foldoutHeader);
-            EditorGUILayout.EndHorizontal();
-            foreach (var client in _activeClients)
+            if (!_isConnected.Value)
             {
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.LabelField(client.User, EditorStyles.whiteLargeLabel, GUILayout.Height(20));
-                EditorGUILayout.SelectableLabel(client.Id, EditorStyles.label, GUILayout.Height(20));
-                if (GUILayout.Button("Show Notification"))
-                {
-                    GUI.Box(new Rect(0,0,Screen.width, Screen.height), "tt" );
-                    this.ShowNotification(new GUIContent("Scene requested"), 10);
-                }
-
-                if (GUILayout.Button("Remove Notification"))
-                {
-                    this.RemoveNotification();
-                }
-                EditorGUILayout.EndHorizontal();
-                GUILayout.Box("", new GUILayoutOption[] { GUILayout.ExpandWidth(true), GUILayout.Height(1) });
+                ShowNotification(new GUIContent("Connecting..."));
             }
 
-            GUI.Label(new Rect(Screen.width - 17, 7, 9, 9), "", new GUIStyle {normal = new GUIStyleState { background = Texture2D.whiteTexture } });
+            EditorGUILayout.HelpBox(_socket?.State.ToString(), MessageType.None);
+            CheckServerStatus();
 
+            _scrollPos = GUILayout.BeginScrollView(_scrollPos, GUIStyle.none);
+
+            EditorGUI.BeginDisabledGroup(!_isConnected.Value);
+
+            if (GUILayout.Button("Request scene access"))
+            {
+                _socket.Close();
+                this.ShowNotification(new GUIContent("Scene requested"));
+                EditorApplication.Beep();
+            }
+
+            Header("Status");
+
+            if (_activeClients != null)
+            {
+                Header("Active team members (" + _activeClients.Count + ")");
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("User", EditorStyles.foldoutHeader);
+                EditorGUILayout.LabelField("Status", EditorStyles.foldoutHeader);
+                EditorGUILayout.EndHorizontal();
+                foreach (var client in _activeClients)
+                {
+                    EditorGUILayout.BeginHorizontal();
+                    EditorGUILayout.LabelField(client.User, EditorStyles.whiteLargeLabel, GUILayout.Height(20));
+                    EditorGUILayout.SelectableLabel(client.Channel, EditorStyles.label,
+                        GUILayout.Height(20));
+
+                    EditorGUILayout.EndHorizontal();
+                    GUILayout.Box("", new GUILayoutOption[] {GUILayout.ExpandWidth(true), GUILayout.Height(1)});
+                }
+            }
+
+            Header("Log");
+
+            // GUI.Label(new Rect(Screen.width - 17, 7, 9, 9), "", new GUIStyle {normal = new GUIStyleState { background = Texture2D.whiteTexture } });
+            //
+            //
+            //
+            // GUI.Box(
+            //     new Rect(0,0,Screen.width, 100),
+            //     new GUIContent("Scene requested"),
+            //     _textureStyle
+            //     );
+            // if (GUILayout.Button("Show Notification"))
+            // {
+            //      
+            //     this.ShowNotification(new GUIContent("Scene requested"), 10);
+            // }
+            EditorGUI.EndDisabledGroup();
+
+            GUILayout.EndScrollView();
         }
 
         private void DrawBox(Rect position, Color color)
@@ -168,12 +226,33 @@ namespace erpk
             GUI.Box(position, GUIContent.none, _textureStyle);
         }
 
+        private void Header(string text)
+        {
+            GUILayout.Space(10.00f);
+            GUILayout.Label(text, EditorStyles.whiteLargeLabel);
+            GUILayout.Space(2.0f);
+            GUILayout.Box("", GUILayout.ExpandWidth(true), GUILayout.Height(1));
+            GUILayout.Space(2.0f);
+        }
+
         public static void LayoutBox(Color color, GUIContent content = null)
         {
-            var backgroundColor = GUI.backgroundColor;
-            GUI.backgroundColor = color;
-            GUILayout.Box(content ?? GUIContent.none, _textureStyle);
-            GUI.backgroundColor = backgroundColor;
+            if (_backgroundTexture == null)
+            {
+                _backgroundTexture = new Texture2D(1, 1);
+            }
+
+            if (_textureStyle == null)
+            {
+                _textureStyle = new GUIStyle();
+            }
+
+            _backgroundTexture.SetPixel(0, 0, color);
+            _backgroundTexture.Apply();
+
+            _textureStyle.normal.background = _backgroundTexture;
+
+            GUILayout.Box(GUIContent.none, _textureStyle);
         }
     }
 }
