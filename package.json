@@ -1,7 +1,7 @@
 {
   "name": "com.hexul.teamhelper",
   "version": "1.0.0",
-  "displayName": "(hexul) Unity Team Helper",
+  "displayName": "Unity Team Helper",
   "description": "Small tool for improving workflow",
   "unity": "2018.1",
   "keywords": [
