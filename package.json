@@ -1,0 +1,20 @@
+{
+  "name": "com.hexul.teamhelper",
+  "version": "1.0.0",
+  "displayName": "(hexul) Unity Team Helper",
+  "description": "Small tool for improving workflow",
+  "unity": "2018.1",
+  "keywords": [
+    "Unity",
+    "Scene",
+    "User"
+  ],
+  "category": "Unity",
+  "author": {
+    "name": "Alexandru Geana",
+    "email": "hexaust@gmail.com",
+    "url": "https://www.hexul.com"
+  },
+  "hideInEditor": false,
+  "type": "library"
+}

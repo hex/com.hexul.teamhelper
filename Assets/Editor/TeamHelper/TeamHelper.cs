@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using NativeWebSocket;
 using TinyJson;
 using UniRx;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace erpk
 {
@@ -13,6 +15,8 @@ namespace erpk
         public string User;
         public string Id;
         public string Channel;
+        public bool OnScene;
+        public string LockedAsset;
     }
 
     public class TeamHelper : EditorWindow
@@ -22,18 +26,57 @@ namespace erpk
         private static Texture2D _backgroundTexture;
         private static GUIStyle _textureStyle;
         private Vector2 _scrollPos;
+        private bool _showSettings;
+        private Object _activeObject;
         private StringReactiveProperty _serverJson = new StringReactiveProperty();
         private List<UnityUser> _activeClients = new List<UnityUser>();
         private BoolReactiveProperty _isConnected = new BoolReactiveProperty();
+        private BoolReactiveProperty _isOnScene = new BoolReactiveProperty();
         private IDisposable _reconnectObserver;
         private IDisposable _isConnectedObserver;
         private IDisposable _serverJsonObserver;
+        private string _userName;
+        private string _serverAddress;
+
+        private string UserName
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_userName))
+                    _userName = EditorPrefs.GetString("DisplayName", SystemInfo.deviceName);
+                return _userName;
+            }
+            set
+            {
+                _userName = value;
+                EditorPrefs.SetString("DisplayName", _userName);
+            }
+        }
+        
+        private string ServerAddress
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_serverAddress))
+                    _serverAddress = EditorPrefs.GetString("ServerAddress", "localhost:8080");
+                return _serverAddress;
+            }
+            set
+            {
+                _serverAddress = value;
+                EditorPrefs.SetString("DisplayName", _serverAddress);
+            }
+        }
+
+        private Color _editorBackgroundColor = Color.white;
 
         [MenuItem("Game/Team Helper")]
         static void Init()
         {
             var window = (TeamHelper) GetWindow(typeof(TeamHelper));
             window.titleContent = new GUIContent("Team Helper");
+            // window.position = new Rect(Screen.width / 2, Screen.height / 2, 599, 299);
+
             window.Show();
         }
 
@@ -62,8 +105,15 @@ namespace erpk
             });
 
             _serverJsonObserver = _serverJson.Subscribe(value =>
-            { 
+            {
                 _activeClients = value?.FromJson<List<UnityUser>>();
+
+                var currentUser = _activeClients.Find(u => u.Id == SystemInfo.deviceUniqueIdentifier);
+
+                _activeObject = string.IsNullOrEmpty(currentUser.LockedAsset)
+                    ? null
+                    : AssetDatabase.LoadMainAssetAtPath(currentUser.LockedAsset);
+
                 Repaint();
             });
         }
@@ -73,13 +123,13 @@ namespace erpk
             Debug.Log("[UTH] Connecting to server");
 
             _socket = new WebSocket(
-                $"ws://localhost:8080?clientName={SystemInfo.deviceName}&clientId={SystemInfo.deviceUniqueIdentifier}&channel={Application.identifier}");
+                $"ws://{ServerAddress}?clientName={UserName}&clientId={SystemInfo.deviceUniqueIdentifier}&channel={Application.identifier}");
 
             _socket.OnError += (e) =>
             {
                 Debug.LogError("[UTH] Error! " + e);
                 Repaint();
-                _isConnected.Value = false; 
+                _isConnected.Value = false;
             };
             _socket.OnClose += (e) =>
             {
@@ -112,7 +162,7 @@ namespace erpk
         {
             if (_socket.State == WebSocketState.Open)
             {
-                await _socket.SendText("msg/" + route + "/" + msg);
+                await _socket.SendText(route + ":" + msg);
             }
         }
 
@@ -120,26 +170,152 @@ namespace erpk
         {
             if (_socket != null) await _socket.Close();
 
-            _isConnectedObserver.Dispose();
-            _serverJson.Dispose();
-            _reconnectObserver.Dispose();
+            _isConnectedObserver?.Dispose();
+            _serverJson?.Dispose();
+            _reconnectObserver?.Dispose();
         }
 
         private void CheckServerStatus()
         {
+            if (_activeClients?.Exists(user => user.OnScene) == true)
+            {
+                var sceneUser = _activeClients.Find(user => user.OnScene);
+
+                DrawBox(new Rect(0, 0, Screen.width - 40, 3),
+                    sceneUser.Id == SystemInfo.deviceUniqueIdentifier ? Color.yellow : Color.red);
+            }
+            else
+            {
+                DrawBox(new Rect(0, 0, Screen.width - 40, 3), Color.green);
+            }
+
+
             switch (_socket?.State)
             {
                 case WebSocketState.Open:
-                    DrawBox(new Rect(Screen.width - 17, 7, 9, 9), Color.green);
+                    DrawBox(new Rect(Screen.width - 38, 0, 38, 3), Color.green);
                     break;
                 case WebSocketState.Closed:
                 case WebSocketState.Closing:
-                    DrawBox(new Rect(Screen.width - 17, 7, 9, 9),
+                    DrawBox(new Rect(Screen.width - 38, 0, 38, 3),
                         DateTime.Now.Second % 2 == 0 ? Color.yellow : Color.red);
                     break;
                 default:
-                    DrawBox(new Rect(Screen.width - 17, 7, 9, 9), Color.yellow);
+                    DrawBox(new Rect(Screen.width - 38, 0, 38, 3), Color.yellow);
                     break;
+            }
+        }
+
+        private void RequestScene()
+        {
+            SendWebSocketMessage("request", "scene");
+        }
+
+        private void SceneStatusView()
+        {
+            Header("Status");
+            GUILayout.Space(2.0f);
+
+            if (_activeClients?.Exists(user => user.OnScene) == true)
+            {
+                var sceneUser = _activeClients.Find(user => user.OnScene);
+
+                if (sceneUser.Id == SystemInfo.deviceUniqueIdentifier)
+                {
+                    GUI.color = Color.yellow;
+                    if (GUILayout.Button("Unlock scene", GUILayout.Height(50)))
+                    {
+                        RequestScene();
+                        ShowNotification(new GUIContent("Unlocked scene"));
+                    }
+
+                    GUI.color = Color.white;
+                }
+                else
+                {
+                    GUI.color = Color.red;
+                    if (GUILayout.Button("Request scene access", GUILayout.Height(50)))
+                    {
+                        RequestScene();
+                        ShowNotification(new GUIContent("Scene requested"));
+                    }
+
+                    GUI.color = Color.white;
+                }
+            }
+            else
+            {
+                GUI.color = Color.green;
+                if (GUILayout.Button("Lock scene", GUILayout.Height(50)))
+                {
+                    RequestScene();
+                    ShowNotification(new GUIContent("Scene locked"));
+                }
+
+                GUI.color = Color.white;
+            }
+
+            GUILayout.Space(10.0f);
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.PrefixLabel("Scene status");
+
+            if (_activeClients?.Exists(user => user.OnScene) == true)
+            {
+                var sceneUser = _activeClients.Find(user => user.OnScene);
+                EditorGUILayout.LabelField("Locked by " + sceneUser.User, EditorStyles.boldLabel);
+            }
+            else
+            {
+                EditorGUILayout.LabelField("Free", EditorStyles.boldLabel);
+            }
+
+            EditorGUILayout.EndHorizontal();
+
+            _activeObject = EditorGUILayout.ObjectField("Active object", _activeObject, typeof(Object), true);
+            EditorGUI.BeginDisabledGroup(!_activeObject);
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.PrefixLabel(" ");
+            if (GUILayout.Button("Mark dirty"))
+            {
+                SendWebSocketMessage("object", AssetDatabase.GetAssetPath(_activeObject));
+            }
+
+            if (GUILayout.Button("Clear"))
+            {
+                SendWebSocketMessage("object", "");
+            }
+
+            EditorGUILayout.EndHorizontal();
+            EditorGUI.EndDisabledGroup();
+        }
+
+        private void SettingsView()
+        {
+            Header("Settings");
+
+            UserName = EditorGUILayout.TextField("Display name", UserName);
+            ServerAddress = EditorGUILayout.TextField("Server address", ServerAddress);
+
+            if (GUILayout.Button("Reload"))
+            {
+                _socket.Close();
+            }
+        }
+
+        private void ActiveUsersView()
+        {
+            if (_activeClients == null) return;
+
+            Header("Active team members (" + _activeClients.Count + ")");
+
+            foreach (var client in _activeClients.OrderBy(x => x.User))
+            {
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField(client.User, EditorStyles.foldoutHeader, GUILayout.Height(20));
+                EditorGUILayout.LabelField((client.OnScene?"Scene    ":"") + client.LockedAsset.ToString(), EditorStyles.miniBoldLabel);
+                EditorGUILayout.EndHorizontal();
+                DrawUILine(Color.grey);
             }
         }
 
@@ -150,61 +326,27 @@ namespace erpk
                 ShowNotification(new GUIContent("Connecting..."));
             }
 
-            EditorGUILayout.HelpBox(_socket?.State.ToString(), MessageType.None);
-            CheckServerStatus();
-
             _scrollPos = GUILayout.BeginScrollView(_scrollPos, GUIStyle.none);
 
             EditorGUI.BeginDisabledGroup(!_isConnected.Value);
 
-            if (GUILayout.Button("Request scene access"))
-            {
-                _socket.Close();
-                this.ShowNotification(new GUIContent("Scene requested"));
-                EditorApplication.Beep();
-            }
+            SceneStatusView();
 
-            Header("Status");
+            ActiveUsersView();
 
-            if (_activeClients != null)
-            {
-                Header("Active team members (" + _activeClients.Count + ")");
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.LabelField("User", EditorStyles.foldoutHeader);
-                EditorGUILayout.LabelField("Status", EditorStyles.foldoutHeader);
-                EditorGUILayout.EndHorizontal();
-                foreach (var client in _activeClients)
-                {
-                    EditorGUILayout.BeginHorizontal();
-                    EditorGUILayout.LabelField(client.User, EditorStyles.whiteLargeLabel, GUILayout.Height(20));
-                    EditorGUILayout.SelectableLabel(client.Channel, EditorStyles.label,
-                        GUILayout.Height(20));
-
-                    EditorGUILayout.EndHorizontal();
-                    GUILayout.Box("", new GUILayoutOption[] {GUILayout.ExpandWidth(true), GUILayout.Height(1)});
-                }
-            }
-
-            Header("Log");
-
-            // GUI.Label(new Rect(Screen.width - 17, 7, 9, 9), "", new GUIStyle {normal = new GUIStyleState { background = Texture2D.whiteTexture } });
-            //
-            //
-            //
-            // GUI.Box(
-            //     new Rect(0,0,Screen.width, 100),
-            //     new GUIContent("Scene requested"),
-            //     _textureStyle
-            //     );
-            // if (GUILayout.Button("Show Notification"))
-            // {
-            //      
-            //     this.ShowNotification(new GUIContent("Scene requested"), 10);
-            // }
             EditorGUI.EndDisabledGroup();
 
+            SettingsView();
+
             GUILayout.EndScrollView();
+
+            CheckServerStatus();
         }
+
+        // private void OnInspectorUpdate()
+        // {
+        //     Repaint();
+        // }
 
         private void DrawBox(Rect position, Color color)
         {
@@ -226,12 +368,21 @@ namespace erpk
             GUI.Box(position, GUIContent.none, _textureStyle);
         }
 
+        public static void DrawUILine(Color color)
+        {
+            var rect = EditorGUILayout.BeginHorizontal();
+            Handles.color = color;
+            Handles.DrawLine(new Vector2(rect.x - 15, rect.y), new Vector2(rect.width + 15, rect.y));
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.Space();
+        }
+
         private void Header(string text)
         {
             GUILayout.Space(10.00f);
             GUILayout.Label(text, EditorStyles.whiteLargeLabel);
             GUILayout.Space(2.0f);
-            GUILayout.Box("", GUILayout.ExpandWidth(true), GUILayout.Height(1));
+            DrawUILine(Color.gray);
             GUILayout.Space(2.0f);
         }
 
