@@ -57,4 +57,7 @@ sysinfo.txt
 
 # Crashlytics generated file
 crashlytics-build.properties
-
+UniRxLib.dll
+UniRxLib.pdb
+UniRxLib.dll.meta
+UniRxLib.pdb.meta
