@@ -136,7 +136,9 @@ namespace hexul.TeamHelper.Editor
                 else
                 {
                     var requestDetails = value?.FromJson<RequestDetails>();
-                    SceneRequest(requestDetails?.RequestUser);
+                    
+                    if(requestDetails != null)
+                        SceneRequest(requestDetails.RequestUser);
                 }
             });
         }
@@ -282,10 +284,7 @@ namespace hexul.TeamHelper.Editor
                 {
                     GUI.color = Color.red;
 
-                    if (activeRequestUser == null) return;
-
-                    if (GUILayout.Button(
-                        activeRequestUser.Id == SystemInfo.deviceUniqueIdentifier
+                    if (GUILayout.Button(activeRequestUser != null &&activeRequestUser.Id == SystemInfo.deviceUniqueIdentifier
                             ? "Cancel scene request"
                             : "Request scene access", GUILayout.Height(50)))
                     {
