@@ -102,9 +102,6 @@ namespace hexul.TeamHelper.Editor
         {
             _backgroundTexture = new Texture2D(1, 1);
             _textureStyle = new GUIStyle();
-
-            _serverJsonAction += UpdateServerJson;
-            _isConnectedAction += UpdateConnectedStatus;
         }
 
         private void UpdateServerJson(string data)
@@ -156,7 +153,10 @@ namespace hexul.TeamHelper.Editor
         {
             _activeClients = new List<UnityUser>();
             _isWindowActive = true;
-
+            
+            _serverJsonAction += UpdateServerJson;
+            _isConnectedAction += UpdateConnectedStatus;
+            
             ConnectSocket();
         }
 
