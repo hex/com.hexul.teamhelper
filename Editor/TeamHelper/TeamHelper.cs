@@ -45,8 +45,9 @@ namespace hexul.TeamHelper.Editor
         private IDisposable _serverJsonObserver;
         private string _userName;
         private string _serverAddress;
-        private bool _enableLogging;
+        private bool _enableLogging = true;
         private EditorCoroutine _retryConnectionCoroutine;
+        private bool _isWindowActive;
 
         private string UserName
         {
@@ -101,6 +102,9 @@ namespace hexul.TeamHelper.Editor
         {
             _backgroundTexture = new Texture2D(1, 1);
             _textureStyle = new GUIStyle();
+
+            _serverJsonAction += UpdateServerJson;
+            _isConnectedAction += UpdateConnectedStatus;
         }
 
         private void UpdateServerJson(string data)
@@ -130,23 +134,15 @@ namespace hexul.TeamHelper.Editor
         {
             _isConnected = status;
 
-            if (status) return;
-            this.StopCoroutine(_retryConnectionCoroutine);
+            if (status || !_isWindowActive) return;
+
             _retryConnectionCoroutine = this.StartCoroutine(RetryConnection());
-            // _reconnectObserver = Observable.Interval(TimeSpan.FromSeconds(5))
-            //     .TakeUntil(_isConnected.Where(connected => connected))
-            //     .Subscribe(observer =>
-            //     {
-            //         _activeClients = new List<UnityUser>();
-            //         ConnectSocket();
-            //
-            //         if (EnableLogging)
-            //             Debug.Log("[UTH] Trying to reconnect " + _socket.State);
-            //     });
         }
 
         private IEnumerator RetryConnection()
         {
+            if (_isConnected) this.StopCoroutine(_retryConnectionCoroutine);
+
             yield return new EditorWaitForSeconds(5);
 
             _activeClients = new List<UnityUser>();
@@ -158,8 +154,8 @@ namespace hexul.TeamHelper.Editor
 
         private void OnEnable()
         {
-            _serverJsonAction += UpdateServerJson;
-            _isConnectedAction += UpdateConnectedStatus;
+            _activeClients = new List<UnityUser>();
+            _isWindowActive = true;
 
             ConnectSocket();
         }
@@ -231,11 +227,9 @@ namespace hexul.TeamHelper.Editor
 
         private async void OnDestroy()
         {
-            if (_socket != null) await _socket.Close();
+            _isWindowActive = false;
 
-            // _isConnectedObserver?.Dispose();
-            // _serverJson?.Dispose();
-            // _reconnectObserver?.Dispose();
+            if (_socket != null) await _socket.Close();
         }
 
         private void CheckServerStatus()
@@ -402,9 +396,11 @@ namespace hexul.TeamHelper.Editor
                     GUILayout.Height(20));
                 GUI.color = Color.white;
                 GUI.color = Color.yellow;
-                EditorGUILayout.LabelField(
-                    (client.HasSceneRequest ? "Scene request    " : "") + (client.OnScene ? "Scene    " : "") +
-                    client.LockedAsset,
+                EditorGUILayout.LabelField(new GUIContent(
+                        (client.HasSceneRequest ? "Scene request    " : "") + (client.OnScene ? "Scene    " : "") +
+                        client.LockedAsset, (client.HasSceneRequest ? "Scene request    " : "") +
+                                            (client.OnScene ? "Scene    " : "") +
+                                            client.LockedAsset),
                     EditorStyles.miniBoldLabel);
                 GUI.color = Color.white;
                 EditorGUILayout.EndHorizontal();
