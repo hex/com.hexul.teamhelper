@@ -16,5 +16,8 @@
     "url": "https://www.hexul.com"
   },
   "hideInEditor": false,
-  "type": "library"
+  "type": "library",
+  "dependencies": {
+    "com.unity.editorcoroutines": "0.1.0-preview.2"
+  }
 }

@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using NativeWebSocket;
 using TinyJson;
-using UniRx;
 using UnityEngine;
+using Unity.EditorCoroutines.Editor;
 using Object = UnityEngine.Object;
 
 namespace hexul.TeamHelper.Editor
@@ -34,15 +35,18 @@ namespace hexul.TeamHelper.Editor
         private Vector2 _scrollPos;
         private bool _showSettings;
         private Object _activeObject;
-        private readonly StringReactiveProperty _serverJson = new StringReactiveProperty();
         private List<UnityUser> _activeClients = new List<UnityUser>();
-        private readonly BoolReactiveProperty _isConnected = new BoolReactiveProperty();
+        private string _serverJson;
+        private bool _isConnected;
+        private Action<string> _serverJsonAction;
+        private Action<bool> _isConnectedAction;
         private IDisposable _reconnectObserver;
         private IDisposable _isConnectedObserver;
         private IDisposable _serverJsonObserver;
         private string _userName;
         private string _serverAddress;
         private bool _enableLogging;
+        private EditorCoroutine _retryConnectionCoroutine;
 
         private string UserName
         {
@@ -99,48 +103,65 @@ namespace hexul.TeamHelper.Editor
             _textureStyle = new GUIStyle();
         }
 
-        private void OnEnable()
+        private void UpdateServerJson(string data)
         {
+            _activeClients = data?.FromJson<List<UnityUser>>();
+
+            if (_activeClients != null)
+            {
+                var currentUser = _activeClients.Find(u => u.Id == SystemInfo.deviceUniqueIdentifier);
+
+                _activeObject = string.IsNullOrEmpty(currentUser.LockedAsset)
+                    ? null
+                    : AssetDatabase.LoadMainAssetAtPath(currentUser.LockedAsset);
+
+                Repaint();
+            }
+            else
+            {
+                var requestDetails = data?.FromJson<RequestDetails>();
+
+                if (requestDetails != null)
+                    SceneRequest(requestDetails.RequestUser);
+            }
+        }
+
+        private void UpdateConnectedStatus(bool status)
+        {
+            _isConnected = status;
+
+            if (status) return;
+            this.StopCoroutine(_retryConnectionCoroutine);
+            _retryConnectionCoroutine = this.StartCoroutine(RetryConnection());
+            // _reconnectObserver = Observable.Interval(TimeSpan.FromSeconds(5))
+            //     .TakeUntil(_isConnected.Where(connected => connected))
+            //     .Subscribe(observer =>
+            //     {
+            //         _activeClients = new List<UnityUser>();
+            //         ConnectSocket();
+            //
+            //         if (EnableLogging)
+            //             Debug.Log("[UTH] Trying to reconnect " + _socket.State);
+            //     });
+        }
+
+        private IEnumerator RetryConnection()
+        {
+            yield return new EditorWaitForSeconds(5);
+
+            _activeClients = new List<UnityUser>();
             ConnectSocket();
 
-            _isConnectedObserver = _isConnected.Subscribe(status =>
-            {
-                if (status) return;
+            if (EnableLogging)
+                Debug.Log("[UTH] Trying to reconnect " + _socket.State);
+        }
 
-                _reconnectObserver = Observable.Interval(TimeSpan.FromSeconds(5))
-                    .TakeUntil(_isConnected.Where(connected => connected))
-                    .Subscribe(observer =>
-                    {
-                        _activeClients = new List<UnityUser>();
-                        ConnectSocket();
+        private void OnEnable()
+        {
+            _serverJsonAction += UpdateServerJson;
+            _isConnectedAction += UpdateConnectedStatus;
 
-                        if (EnableLogging)
-                            Debug.Log("[UTH] Trying to reconnect " + _socket.State);
-                    });
-            });
-
-            _serverJsonObserver = _serverJson.Subscribe(value =>
-            {
-                _activeClients = value?.FromJson<List<UnityUser>>();
-
-                if (_activeClients != null)
-                {
-                    var currentUser = _activeClients.Find(u => u.Id == SystemInfo.deviceUniqueIdentifier);
-
-                    _activeObject = string.IsNullOrEmpty(currentUser.LockedAsset)
-                        ? null
-                        : AssetDatabase.LoadMainAssetAtPath(currentUser.LockedAsset);
-                    
-                    Repaint();
-                }
-                else
-                {
-                    var requestDetails = value?.FromJson<RequestDetails>();
-                    
-                    if(requestDetails != null)
-                        SceneRequest(requestDetails.RequestUser);
-                }
-            });
+            ConnectSocket();
         }
 
         private async void ConnectSocket()
@@ -157,7 +178,7 @@ namespace hexul.TeamHelper.Editor
                     Debug.LogError("[UTH] Error! " + e);
 
                 Repaint();
-                _isConnected.Value = false;
+                _isConnectedAction.Invoke(false);
             };
             _socket.OnClose += (e) =>
             {
@@ -169,14 +190,14 @@ namespace hexul.TeamHelper.Editor
 #pragma warning restore 4014
 
                 Repaint();
-                _isConnected.Value = false;
+                _isConnectedAction.Invoke(false);
             };
             _socket.OnMessage += ParseMessages;
             _socket.OnOpen += () =>
             {
                 SendWebSocketMessage("Hello from " + UserName);
                 Repaint();
-                _isConnected.Value = true;
+                _isConnectedAction.Invoke(true);
             };
 
             await _socket.Connect();
@@ -189,7 +210,7 @@ namespace hexul.TeamHelper.Editor
             if (EnableLogging)
                 Debug.Log("[UTH] Server message: " + msg);
 
-            _serverJson.SetValueAndForceNotify(msg);
+            _serverJsonAction.Invoke(msg);
         }
 
         private async void SendWebSocketMessage(string msg)
@@ -212,9 +233,9 @@ namespace hexul.TeamHelper.Editor
         {
             if (_socket != null) await _socket.Close();
 
-            _isConnectedObserver?.Dispose();
-            _serverJson?.Dispose();
-            _reconnectObserver?.Dispose();
+            // _isConnectedObserver?.Dispose();
+            // _serverJson?.Dispose();
+            // _reconnectObserver?.Dispose();
         }
 
         private void CheckServerStatus()
@@ -284,9 +305,10 @@ namespace hexul.TeamHelper.Editor
                 {
                     GUI.color = Color.red;
 
-                    if (GUILayout.Button(activeRequestUser != null &&activeRequestUser.Id == SystemInfo.deviceUniqueIdentifier
-                            ? "Cancel scene request"
-                            : "Request scene access", GUILayout.Height(50)))
+                    if (GUILayout.Button(activeRequestUser != null &&
+                                         activeRequestUser.Id == SystemInfo.deviceUniqueIdentifier
+                        ? "Cancel scene request"
+                        : "Request scene access", GUILayout.Height(50)))
                     {
                         RequestScene();
                         ShowNotification(new GUIContent("Scene requested"));
@@ -392,14 +414,14 @@ namespace hexul.TeamHelper.Editor
 
         private void OnGUI()
         {
-            if (!_isConnected.Value)
+            if (!_isConnected)
             {
                 ShowNotification(new GUIContent("Connecting..."));
             }
 
             _scrollPos = GUILayout.BeginScrollView(_scrollPos, GUIStyle.none);
 
-            EditorGUI.BeginDisabledGroup(!_isConnected.Value);
+            EditorGUI.BeginDisabledGroup(!_isConnected);
 
             SceneStatusView();
 
