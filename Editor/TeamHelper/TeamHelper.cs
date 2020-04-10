@@ -98,12 +98,6 @@ namespace hexul.TeamHelper.Editor
             window.Show();
         }
 
-        private void Awake()
-        {
-            _backgroundTexture = new Texture2D(1, 1);
-            _textureStyle = new GUIStyle();
-        }
-
         private void UpdateServerJson(string data)
         {
             _activeClients = data?.FromJson<List<UnityUser>>();
@@ -149,15 +143,35 @@ namespace hexul.TeamHelper.Editor
                 Debug.Log("[UTH] Trying to reconnect " + _socket.State);
         }
 
+        private void Awake()
+        {
+            _backgroundTexture = new Texture2D(1, 1);
+            _textureStyle = new GUIStyle();
+        }
+
         private void OnEnable()
         {
             _activeClients = new List<UnityUser>();
             _isWindowActive = true;
-            
+
             _serverJsonAction += UpdateServerJson;
             _isConnectedAction += UpdateConnectedStatus;
-            
+
             ConnectSocket();
+        }
+
+        private void OnDisable()
+        {
+            _isWindowActive = false;
+            _serverJsonAction = null;
+            _isConnectedAction = null;
+        }
+
+        private async void OnDestroy()
+        {
+            _isWindowActive = false;
+
+            if (_socket != null) await _socket.Close();
         }
 
         private async void ConnectSocket()
@@ -174,7 +188,7 @@ namespace hexul.TeamHelper.Editor
                     Debug.LogError("[UTH] Error! " + e);
 
                 Repaint();
-                _isConnectedAction.Invoke(false);
+                _isConnectedAction?.Invoke(false);
             };
             _socket.OnClose += (e) =>
             {
@@ -186,7 +200,7 @@ namespace hexul.TeamHelper.Editor
 #pragma warning restore 4014
 
                 Repaint();
-                _isConnectedAction.Invoke(false);
+                _isConnectedAction?.Invoke(false);
             };
             _socket.OnMessage += ParseMessages;
             _socket.OnOpen += () =>
@@ -223,13 +237,6 @@ namespace hexul.TeamHelper.Editor
             {
                 await _socket.SendText(route + ":" + msg);
             }
-        }
-
-        private async void OnDestroy()
-        {
-            _isWindowActive = false;
-
-            if (_socket != null) await _socket.Close();
         }
 
         private void CheckServerStatus()
