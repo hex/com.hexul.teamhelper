@@ -127,6 +127,8 @@ namespace hexul.TeamHelper.Editor
 
             if (status || !_isWindowActive) return;
 
+            if (_retryConnectionCoroutine != null) this.StopCoroutine(_retryConnectionCoroutine);
+
             _retryConnectionCoroutine = this.StartCoroutine(RetryConnection());
         }
 
@@ -178,6 +180,8 @@ namespace hexul.TeamHelper.Editor
         {
             if (EnableLogging)
                 Debug.Log("[UTH] Connecting to server");
+
+            if (_socket != null) await _socket.Close();
 
             _socket = new WebSocket(
                 $"ws://{ServerAddress}?clientName={UserName}&clientId={SystemInfo.deviceUniqueIdentifier}&channel={Application.identifier}");
